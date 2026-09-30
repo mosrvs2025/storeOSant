@@ -32,7 +32,7 @@ try {
   await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await page.getByRole('button', { name: /Set up my store/ }).click();
+  await page.getByRole('button', { name: /Type it in/ }).click();
   await page.getByPlaceholder('e.g. Safeway').fill('Test Market');
   await page.getByPlaceholder('#1234').fill('#77');
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '+' }).click();

@@ -2,12 +2,14 @@ import { useRef, useState } from 'react';
 import { CONFIG, DEMO_CONFIG, IS_REAL, saveConfig, type StoreConfig } from '../model/config';
 import { AISLE_COUNT } from '../model/layout';
 import { PRODUCTS, removeProduct, updateProduct } from '../model/products';
+import { SnapSetup } from './SnapSetup';
+import type { ReadResult } from '../model/signs';
 import { exportBackup, importBackup, resetDemo, useKnowledge } from '../model/state';
 import { SLOT } from '../model/layout';
 import { Conf, TopBar, toast } from './common';
 import type { Nav } from './App';
 
-function StoreForm({ initial, onSave, cta }: { initial: StoreConfig; onSave: (c: StoreConfig) => void; cta: string }) {
+export function StoreForm({ initial, onSave, cta }: { initial: StoreConfig; onSave: (c: StoreConfig) => void; cta: string }) {
   const [c, setC] = useState<StoreConfig>({ ...initial, mode: 'real' });
   const setAisles = (n: number) => setC((x) => ({ ...x, aisles: Math.max(4, Math.min(30, n)) }));
   return (
@@ -52,13 +54,45 @@ function StoreForm({ initial, onSave, cta }: { initial: StoreConfig; onSave: (c:
 
 const BLANK: StoreConfig = { mode: 'real', name: '', number: '', aisles: 12, aisleNames: {}, frozen: [] };
 
-/** First launch: try the demo, or set up your own store. */
+/** First launch: snap signs, type it in, or try the demo. */
 export function Setup() {
-  const [real, setReal] = useState(false);
-  if (real)
+  const [mode, setMode] = useState<'choose' | 'type' | 'snap' | 'review'>('choose');
+  const [draft, setDraft] = useState<StoreConfig>(BLANK);
+  const [read, setRead] = useState<ReadResult | null>(null);
+  if (mode === 'snap')
+    return (
+      <SnapSetup
+        onBack={() => setMode('choose')}
+        onTypeInstead={() => setMode('type')}
+        onDraft={(c, r) => {
+          setDraft(c);
+          setRead(r);
+          setMode('review');
+        }}
+      />
+    );
+  if (mode === 'review' && read)
     return (
       <div className="screen">
-        <TopBar title="Set up your store" sub="Takes a minute. You can change it later." onBack={() => setReal(false)} />
+        <TopBar title="Here’s your store" sub="Check it over — fix anything the photos got wrong" onBack={() => setMode('snap')} />
+        <div className="pad">
+          <div className="read-summary">
+            <b>
+              Read {read.aisles.length} aisle{read.aisles.length === 1 ? '' : 's'}
+              {read.aisles.some((a) => a.frozen) && ` · ${read.aisles.filter((a) => a.frozen).length} freezer`}
+            </b>
+            {read.departments.length > 0 && <small>Departments seen: {read.departments.join(', ')}</small>}
+            {missingAisles(read).length > 0 && <small className="warn">No sign read for aisle {missingAisles(read).join(', ')} — add a name below if you like.</small>}
+            {read.unreadable > 0 && <small>{read.unreadable} photo{read.unreadable === 1 ? '' : 's'} had no readable sign.</small>}
+          </div>
+          <StoreForm key={JSON.stringify(draft)} initial={draft} onSave={(c) => saveConfig(c)} cta="Looks right — create my store →" />
+        </div>
+      </div>
+    );
+  if (mode === 'type')
+    return (
+      <div className="screen">
+        <TopBar title="Set up your store" sub="Takes a minute. You can change it later." onBack={() => setMode('choose')} />
         <div className="pad">
           <StoreForm initial={BLANK} onSave={(c) => saveConfig(c)} cta="Create my store →" />
         </div>
@@ -77,9 +111,13 @@ export function Setup() {
         <p>A live map of where things actually are in your store — built by scanning while you work.</p>
       </div>
       <div className="pad">
-        <button className="choice" onClick={() => setReal(true)}>
-          <b>🏬 Set up my store</b>
-          <small>Enter your aisles, then scan shelves to teach it. Everything stays on this phone.</small>
+        <button className="choice" onClick={() => setMode('snap')}>
+          <b>📸 Snap my store</b>
+          <small>Walk the front end photographing the aisle signs. StoreOS reads them and builds your layout.</small>
+        </button>
+        <button className="choice" onClick={() => setMode('type')}>
+          <b>⌨️ Type it in</b>
+          <small>Enter how many aisles and what’s in them. Works offline.</small>
         </button>
         <button className="choice" onClick={() => saveConfig(DEMO_CONFIG)}>
           <b>🧪 Try the demo store</b>
@@ -93,6 +131,7 @@ export function Setup() {
 export function Settings({ go }: { go: Nav }) {
   const k = useKnowledge();
   const [edit, setEdit] = useState(false);
+  const [snap, setSnap] = useState<StoreConfig | null | 'shoot'>(null);
   const [q, setQ] = useState('');
   const [, bump] = useState(0);
   const file = useRef<HTMLInputElement>(null);
@@ -107,6 +146,30 @@ export function Settings({ go }: { go: Nav }) {
     URL.revokeObjectURL(a.href);
   };
 
+  if (snap === 'shoot')
+    return (
+      <SnapSetup
+        onBack={() => setSnap(null)}
+        onTypeInstead={() => (setSnap(null), setEdit(true))}
+        onDraft={(c) =>
+          setSnap({
+            ...CONFIG,
+            aisles: Math.max(CONFIG.aisles, c.aisles),
+            aisleNames: { ...CONFIG.aisleNames, ...c.aisleNames },
+            frozen: [...new Set([...CONFIG.frozen, ...c.frozen])],
+          })
+        }
+      />
+    );
+  if (snap)
+    return (
+      <div className="screen">
+        <TopBar title="Updated from photos" sub="Check it, then save. Mapped products keep their spots." onBack={() => setSnap(null)} />
+        <div className="pad">
+          <StoreForm initial={snap} onSave={(c) => saveConfig(c)} cta="Save store" />
+        </div>
+      </div>
+    );
   if (edit)
     return (
       <div className="screen">
@@ -124,6 +187,11 @@ export function Settings({ go }: { go: Nav }) {
         {IS_REAL && (
           <button className="btn ghost wide" onClick={() => setEdit(true)}>
             ✎ Edit store layout ({AISLE_COUNT} aisles)
+          </button>
+        )}
+        {IS_REAL && (
+          <button className="btn ghost wide" onClick={() => setSnap('shoot')}>
+            📸 Update aisles from sign photos
           </button>
         )}
         <h3 className="h3">Backup</h3>
@@ -225,4 +293,10 @@ export function Settings({ go }: { go: Nav }) {
       </div>
     </div>
   );
+}
+
+function missingAisles(r: ReadResult) {
+  const have = new Set(r.aisles.map((a) => a.number));
+  const max = Math.max(0, ...have);
+  return Array.from({ length: max }, (_, i) => i + 1).filter((n) => !have.has(n));
 }

@@ -8,9 +8,12 @@ observation, and beliefs about where things are decay over time and snap back wh
 Demo store: *Fernwood Market #214*, a fictional 260 × 170 ft grocery store with 90 products, two weeks of simulated crew history, pickup orders, price-tag flags, shelf outs and a parking lot.
 
 ## Use it in your own store (Android)
-**Open:** https://mosrvs2025.github.io/storeOSant/ in **Chrome on Android**. Then use ⋮ → **Add to Home screen**, and it runs full-screen and works offline.
+**Open:** https://storeosant.vercel.app/ in **Chrome on Android**. Then use ⋮ → **Add to Home screen**, and it runs full-screen and works offline.
 
-1. **Set up my store**: name it, set how many numbered aisles you have, and optionally name them. Tap ❄ on freezer aisles.
+1. **Set up your store**, either way:
+   - **📸 Snap my store:** walk along the registers photographing each hanging aisle sign. StoreOS reads them with Claude and drafts the layout: aisle count, names and freezer aisles. You check it and save.
+   - **⌨️ Type it in:** set the aisle count, optionally name them, and tap ❄ on freezer aisles. This works offline.
+   You can add more sign photos later from ⚙ Settings.
 2. **Walk an Aisle** (how anyone teaches it, with no need to know the layout): read the hanging sign and tap the aisle number.
    Start at the front and scan every **shelf tag** on your left down to the back, then turn around and scan the other side back to the front.
    The order of your scans places each item in a section (A = front … E = back). About 3 minutes an aisle.
@@ -56,4 +59,7 @@ npm test           # model unit tests
 npm run build && npm run e2e        # demo store workflow in Chromium → e2e-shots/
 node scripts/e2e-real.mjs           # real-store setup, Bluetooth-scanner mapping, go-backs
 ```
-Pushing to this branch deploys to GitHub Pages (`.github/workflows/deploy.yml`).
+Hosted on Vercel. `api/read-signs.ts` is a Vercel Function that reads sign photos with Claude.
+It needs **`ANTHROPIC_API_KEY`**: set it in Vercel under Project → Settings → Environment Variables.
+Without the key, "Snap my store" shows an error and offers typing instead. GitHub Actions runs tests and the build on every push.
+`node scripts/e2e-snap.mjs` tests the photo setup flow with the API mocked.

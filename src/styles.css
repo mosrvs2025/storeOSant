@@ -2851,3 +2851,111 @@ p {
 .mt {
   margin-top: 12px;
 }
+
+/* ---------- snap your store ---------- */
+.snap-steps {
+  padding-left: 20px;
+  margin: 0 0 14px;
+  color: #c9d5e2;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.snap-steps li {
+  margin-bottom: 6px;
+}
+.snap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.snap-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  animation: pop 0.3s ease;
+}
+.snap-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.snap-thumb button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+}
+.snap-add {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  border: 2px dashed #35506b;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.snap-add span {
+  font-size: 30px;
+}
+.pick-gallery {
+  display: block;
+  margin: 12px auto 0;
+}
+.reading {
+  min-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+.reading-orb {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--violet), #3b2a7a 60%, transparent 70%);
+  animation: orb 1.4s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+@keyframes orb {
+  50% {
+    transform: scale(1.12);
+    filter: brightness(1.3);
+  }
+}
+.progress.wide {
+  width: 70%;
+  flex: none;
+}
+.read-summary {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--violet) 12%, var(--surface));
+  border: 1px solid #3f3270;
+  margin-bottom: 16px;
+}
+.read-summary b {
+  font-size: 16px;
+}
+.read-summary small {
+  color: #c9d5e2;
+  font-size: 13px;
+}
+.read-summary .warn {
+  color: var(--amber);
+}
