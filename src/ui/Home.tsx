@@ -4,17 +4,26 @@ import { PRODUCT } from '../model/products';
 import { pulse, type Signal } from '../model/pulse';
 import { cartsIn, getState, mkStop, startPlan, startStock, startVerify, useKnowledge, useStore } from '../model/state';
 import { StoreMap, type Pin } from './StoreMap';
-import { MicIcon, clock, useNow } from './common';
+import { MicIcon, clock, toast, useNow } from './common';
+import { IS_REAL } from '../model/config';
+import { PRODUCTS } from '../model/products';
 import { sfx } from './feedback';
 import type { Nav } from './App';
 
-const VERBS = [
+const DEMO_VERBS = [
   { id: 'scan', label: 'Go-Backs', icon: '↩️', hint: 'Scan a cart, get a route' },
   { id: 'find', label: 'Find Item', icon: '🔎', hint: 'Where is it, really?' },
   { id: 'orders', label: 'Pick Order', icon: '🧺', hint: 'Pickup orders' },
   { id: 'stock', label: 'Stock', icon: '📦', hint: 'Fill shelf outs' },
   { id: 'walk', label: 'Walk Store', icon: '👣', hint: 'Truth Walk' },
 ] as const;
+const REAL_VERBS = [
+  { id: 'scan', label: 'Go-Backs', icon: '↩️', hint: 'Scan a cart, get a route' },
+  { id: 'map', label: 'Map a Shelf', icon: '🗺️', hint: 'Teach it your store' },
+  { id: 'find', label: 'Find Item', icon: '🔎', hint: 'Where is it, really?' },
+  { id: 'walk', label: 'Walk Store', icon: '👣', hint: 'Re-check shaky spots' },
+] as const;
+const VERBS = IS_REAL ? REAL_VERBS : DEMO_VERBS;
 
 export function Home({ go }: { go: Nav }) {
   const now = useNow();
@@ -69,6 +78,7 @@ export function Home({ go }: { go: Nav }) {
 
   const verb = (id: (typeof VERBS)[number]['id']) => {
     sfx.tap();
+    if (id === 'walk' && IS_REAL && PRODUCTS.length === 0) return toast('Map a few shelves first — then StoreOS knows what to re-check.', 'amber');
     if (id === 'stock') {
       startStock();
       return go('nav');
@@ -98,13 +108,18 @@ export function Home({ go }: { go: Nav }) {
             </small>
           </div>
         </div>
-        <button className="pill live" onClick={() => go('pulse')}>
-          <i className="dot" /> {clock(now)}
-        </button>
+        <div className="head-right">
+          <button className="pill live" onClick={() => go('pulse')}>
+            <i className="dot" /> {clock(now)}
+          </button>
+          <button className="icon-btn" onClick={() => go('settings')} aria-label="Settings">
+            ⚙
+          </button>
+        </div>
       </header>
 
       <div className="home-map">
-        <StoreMap heat={heat} pins={pins} me={s.me} corralCounts={counts} onTap={() => go('reality')} />
+        <StoreMap heat={heat} pins={pins} me={s.me} corralCounts={IS_REAL ? undefined : counts} onTap={() => go('reality')} />
         <button className="map-legend" onClick={() => go('reality')}>
           <span className="legend-bar" /> Reality Layer · location confidence
         </button>
@@ -122,10 +137,16 @@ export function Home({ go }: { go: Nav }) {
           </span>
         </button>
 
+        {IS_REAL && PRODUCTS.length < 25 && (
+          <button className="teach-card" onClick={() => go('map')}>
+            <b>{PRODUCTS.length === 0 ? '👋 Teach StoreOS your store' : `🗺️ ${PRODUCTS.length} products mapped — keep going`}</b>
+            <small>Stand at a shelf, tap it on the map, scan everything on it. Ten minutes of scanning makes go-backs useful. Scanning go-backs teaches it too.</small>
+          </button>
+        )}
         <h2 className="q">What are you doing?</h2>
-        <div className="verbs">
+        <div className={`verbs ${VERBS.length % 2 === 0 ? 'odd' : ''}`}>
           {VERBS.map((v) => (
-            <button key={v.id} className={`verb ${v.id === 'scan' ? 'primary' : ''} ${v.id === 'scan' && s.intro ? 'beckon' : ''}`} onClick={() => verb(v.id)}>
+            <button key={v.id} className={`verb ${v.id === 'scan' ? 'primary' : ''} ${v.id === (IS_REAL && PRODUCTS.length === 0 ? 'map' : 'scan') && s.intro ? 'beckon' : ''}`} onClick={() => verb(v.id)}>
               <span className="vi">{v.icon}</span>
               <b>{v.label}</b>
               <small>{v.hint}</small>
@@ -142,6 +163,7 @@ export function Home({ go }: { go: Nav }) {
               {showAll ? 'Less' : `All ${signals.length}`}
             </button>
           </div>
+          {top.length === 0 && <p className="muted small quiet">All quiet. Signals show up here as you scan, map and correct things.</p>}
           {top.map((sig) => (
             <button key={sig.id} className={`signal t-${sig.tone}`} onClick={() => act(sig)} disabled={!sig.action}>
               <span className="si">{sig.icon}</span>

@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { SLOT } from '../model/layout';
+import { useEffect, useMemo, useState } from 'react';
+import { IS_REAL } from '../model/config';
+import { Camera, hasBarcodeDetector, useWedgeScanner } from './scanning';
+import { LearnSheet } from './Learn';
+import { FRONT_END, SLOT } from '../model/layout';
 import { DEMO_CART, PRODUCT, lookupUpc, searchProducts, type Product } from '../model/products';
 import { addToCart, clearCart, groupBySlot, handleSec, knowledge, planStops, removeFromCart, setState, startGoBacks, useKnowledge, useStore } from '../model/state';
 import { WALK_FPS } from '../model/routing';
@@ -8,62 +11,12 @@ import { Conf, TopBar, VoiceInput, toast } from './common';
 import { sfx } from './feedback';
 import type { Nav } from './App';
 
-type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
-
-function Camera({ onCode, onFail }: { onCode: (c: string) => void; onFail: () => void }) {
-  const video = useRef<HTMLVideoElement>(null);
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let stop = false;
-    let last = '';
-    let lastAt = 0;
-    (async () => {
-      try {
-        const BD = (window as unknown as { BarcodeDetector?: new (o: object) => Detector }).BarcodeDetector;
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-        if (!video.current) return;
-        video.current.srcObject = stream;
-        await video.current.play();
-        if (!BD) return;
-        const det = new BD({ formats: ['upc_a', 'ean_13', 'upc_e', 'ean_8'] });
-        const loop = async () => {
-          if (stop || !video.current) return;
-          try {
-            const codes = await det.detect(video.current);
-            const c = codes[0]?.rawValue;
-            if (c && (c !== last || Date.now() - lastAt > 2500)) {
-              last = c;
-              lastAt = Date.now();
-              onCode(c);
-            }
-          } catch {
-            /* frame not ready */
-          }
-          setTimeout(loop, 180);
-        };
-        void loop();
-      } catch {
-        onFail();
-      }
-    })();
-    return () => {
-      stop = true;
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, [onCode, onFail]);
-  return (
-    <div className="camera">
-      <video ref={video} playsInline muted />
-      <div className="reticle" />
-    </div>
-  );
-}
-
 export function Scan({ go }: { go: Nav }) {
   const cart = useStore((s) => s.cart);
   const k = useKnowledge();
   const [q, setQ] = useState('');
-  const [cam, setCam] = useState(false);
+  const [cam, setCam] = useState(IS_REAL && hasBarcodeDetector());
+  const [learning, setLearning] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [auto, setAuto] = useState(false);
   const pile = useMemo(() => DEMO_CART.filter((pid) => !cart.includes(pid)), [cart]);
@@ -80,11 +33,15 @@ export function Scan({ go }: { go: Nav }) {
   const onCode = (code: string) => {
     const p = lookupUpc(code);
     if (p) scan(p);
-    else {
+    else if (IS_REAL) {
+      sfx.scan();
+      setLearning(code);
+    } else {
       sfx.error();
       toast(`UPC ${code} isn't in this store's catalog`, 'red');
     }
   };
+  useWedgeScanner(onCode, !learning);
 
   // "Scan the whole cart" — rapid-fire demo
   useEffect(() => {
@@ -100,7 +57,7 @@ export function Scan({ go }: { go: Nav }) {
   const est = useMemo(() => {
     if (!cart.length) return null;
     const stops = groupBySlot(cart, knowledge(), 'putaway');
-    const { feet } = planStops(stops, { x: 211, y: 150 });
+    const { feet } = planStops(stops, FRONT_END);
     const secs = feet / WALK_FPS + stops.reduce((a, s) => a + handleSec(s), 0);
     return { feet, mins: Math.max(1, Math.round(secs / 60)), stops: stops.length };
   }, [cart]);
@@ -129,7 +86,12 @@ export function Scan({ go }: { go: Nav }) {
 
       <div className="scan-top">
         {cam ? (
-          <Camera onCode={onCode} onFail={() => (setCam(false), toast('Camera unavailable — use the demo cart or type a UPC', 'amber'))} />
+          <Camera onCode={(c) => !learning && onCode(c)} onFail={(why) => (setCam(false), toast(why, 'amber'))} />
+        ) : IS_REAL ? (
+          <div className="wedge-hint">
+            <b>🔫 Ready to scan</b>
+            <small>Pull your Bluetooth scanner’s trigger{hasBarcodeDetector() ? ', turn on the camera,' : ''} or type the UPC below. New items: StoreOS asks where they live once, then remembers.</small>
+          </div>
         ) : (
           <div className="pile">
             <div className="pile-head">
@@ -160,7 +122,7 @@ export function Scan({ go }: { go: Nav }) {
         )}
         {hasCamera && (
           <button className="cam-toggle" onClick={() => setCam((c) => !c)}>
-            {cam ? '🛒 Demo cart' : '📷 Camera'}
+            {cam ? (IS_REAL ? 'Camera off' : '🛒 Demo cart') : '📷 Camera'}
           </button>
         )}
       </div>
@@ -174,6 +136,9 @@ export function Scan({ go }: { go: Nav }) {
             const hit = lookupUpc(v) ?? searchProducts(v, 1)[0];
             if (hit) {
               scan(hit);
+              setQ('');
+            } else if (IS_REAL && /^\d{6,14}$/.test(v.trim())) {
+              setLearning(v.trim());
               setQ('');
             } else {
               sfx.error();
@@ -201,7 +166,7 @@ export function Scan({ go }: { go: Nav }) {
       <div className="scan-body">
         {cart.length > 0 && (
           <div className="scan-map">
-            <StoreMap pins={pins} me={{ x: 211, y: 150 }} dim />
+            <StoreMap pins={pins} me={FRONT_END} dim />
           </div>
         )}
         <ul className="scanned">
@@ -259,6 +224,16 @@ export function Scan({ go }: { go: Nav }) {
           </div>
         )}
       </div>
+      {learning && (
+        <LearnSheet
+          upc={learning}
+          onClose={() => setLearning(null)}
+          onLearned={(p) => {
+            setLearning(null);
+            scan(p);
+          }}
+        />
+      )}
     </div>
   );
 }

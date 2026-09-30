@@ -1,3 +1,5 @@
+import { IS_REAL } from './config';
+
 // A fictional product catalog. `plan` is where the corporate planogram says the item lives.
 // `truth` is where it actually is in the demo store (used only to simulate history and
 // to power the scanner's demo cart — the app itself never reads it for routing).
@@ -121,7 +123,7 @@ const ROWS: Row[] = [
   ['Apple Cider', 'Martinelli’s', '50.7 oz', '🍎', 5.99, 'A8-B-R', 'E8-F', 'A8-B-R', true],
 ];
 
-export const PRODUCTS: Product[] = ROWS.map((r, i) => {
+const DEMO_PRODUCTS: Product[] = ROWS.map((r, i) => {
   const [name, brand, size, emoji, price, plan, truth, also, drifty] = r;
   const base = `0${(41200 + i * 37).toString().padStart(5, '0')}${(10000 + i * 131).toString().slice(-5)}`;
   return {
@@ -139,11 +141,77 @@ export const PRODUCTS: Product[] = ROWS.map((r, i) => {
   };
 });
 
+// ---------------------------------------------------------------------------
+// The live catalog. In a real store it starts empty and grows as you scan.
+
+export const CATALOG_KEY = 'storeos.catalog';
+
+function loadCatalog(): Product[] {
+  try {
+    const raw = localStorage.getItem(CATALOG_KEY);
+    return raw ? (JSON.parse(raw) as Product[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export const PRODUCTS: Product[] = IS_REAL ? loadCatalog() : DEMO_PRODUCTS;
 export const PRODUCT: Record<string, Product> = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
 export const BY_UPC: Record<string, Product> = Object.fromEntries(PRODUCTS.map((p) => [p.upc, p]));
 
-export function lookupUpc(code: string): Product | undefined {
+function saveCatalog() {
+  if (!IS_REAL) return;
+  try {
+    localStorage.setItem(CATALOG_KEY, JSON.stringify(PRODUCTS));
+  } catch {
+    /* storage full */
+  }
+}
+
+export const normUpc = (code: string) => {
   const c = code.replace(/\D/g, '');
+  return c.length === 13 && c.startsWith('0') ? c.slice(1) : c;
+};
+
+export function addProduct(p: Omit<Product, 'id' | 'truth'> & { truth?: string }): Product {
+  const upc = normUpc(p.upc);
+  const prod: Product = { ...p, upc, id: `u${upc || Date.now().toString(36)}`, truth: p.truth ?? p.plan };
+  PRODUCTS.push(prod);
+  PRODUCT[prod.id] = prod;
+  BY_UPC[prod.upc] = prod;
+  saveCatalog();
+  return prod;
+}
+
+export function updateProduct(id: string, patch: Partial<Pick<Product, 'name' | 'brand' | 'size' | 'emoji'>>) {
+  const p = PRODUCT[id];
+  if (!p) return;
+  Object.assign(p, patch);
+  saveCatalog();
+}
+
+export function removeProduct(id: string) {
+  const i = PRODUCTS.findIndex((p) => p.id === id);
+  if (i < 0) return;
+  const [p] = PRODUCTS.splice(i, 1);
+  delete PRODUCT[id];
+  delete BY_UPC[p.upc];
+  saveCatalog();
+}
+
+export function replaceCatalog(list: Product[]) {
+  PRODUCTS.splice(0, PRODUCTS.length, ...list);
+  for (const k of Object.keys(PRODUCT)) delete PRODUCT[k];
+  for (const k of Object.keys(BY_UPC)) delete BY_UPC[k];
+  for (const p of list) {
+    PRODUCT[p.id] = p;
+    BY_UPC[p.upc] = p;
+  }
+  saveCatalog();
+}
+
+export function lookupUpc(code: string): Product | undefined {
+  const c = normUpc(code);
   return BY_UPC[c] ?? BY_UPC[c.padStart(12, '0')] ?? (c.length === 13 ? BY_UPC[c.slice(1)] : undefined);
 }
 
@@ -189,4 +257,4 @@ export const DEMO_CART = [
   'Chocolate Chips',
   'Hamburger Helper',
   'Red Bull',
-].map((n) => PRODUCTS.find((p) => p.name === n)!.id);
+].map((n) => DEMO_PRODUCTS.find((p) => p.name === n)!.id);

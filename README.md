@@ -7,7 +7,24 @@ observation, and beliefs about where things are decay over time and snap back wh
 
 Demo store: *Fernwood Market #214*, a fictional 260 × 170 ft grocery store with 90 products, two weeks of simulated crew history, pickup orders, price-tag flags, shelf outs and a parking lot.
 
-## Try it (≈2 minutes)
+## Use it in your own store (Android)
+**Open:** https://mosrvs2025.github.io/storeOSant/ in **Chrome on Android**. Then use ⋮ → **Add to Home screen**, and it runs full-screen and works offline.
+
+1. **Set up my store**: name it, set how many numbered aisles you have, and optionally name them. Tap ❄ on freezer aisles.
+2. **Map a Shelf**: stand at a section, tap it (aisle → section A–E → side ◀/▶), then scan everything there. **Next section →** moves you along the aisle.
+   Unknown barcodes are added right away; names are looked up on Open Food Facts when you have signal, or you can rename them with ✎.
+3. **Go-Backs**: scan the cart. Known items are routed automatically. For a new item, you name it and tap where it lives, once.
+   At each stop, **✓ Put away** confirms the location and **📍 Not here?** corrects it. Every scan makes the map more accurate.
+4. **Settings ⚙ → Export** now and then. Your map lives only on the phone.
+
+**Scanning:** the phone camera (Chrome on Android has built-in barcode reading), or any Bluetooth barcode scanner in **HID / keyboard mode**.
+Pair it in Android Bluetooth settings, keep the default "Enter" suffix, and just pull the trigger while StoreOS is open. Nothing needs to be selected.
+Most $25–60 scanners (Tera, Eyoyo, NetumScan, Inateck) work this way. Get a 1D/2D one with Bluetooth.
+
+**Layout:** StoreOS draws a standard grocery layout: produce/bakery on the left, meat & deli along the back, dairy on the right, registers at the front, and your aisles numbered left to right.
+Routing only needs the order to be roughly right. It can't draw custom floor plans yet.
+
+## Try the demo (≈2 minutes)
 1. **Go-Backs** → tap items in the cart (or **⚡ Scan whole cart**, the camera, or type/say a UPC) → **Start Route**.
 2. Follow turn-by-turn navigation. Cold and frozen items get routed first; the banner shows how many feet you save compared with walking in scan order.
 3. At **Oreo Pumpkin Spice**, tap **📍 Not here?** and say or type *“it's actually on the endcap facing aisle six”*, or tap the map. You can attach a photo.
@@ -31,6 +48,7 @@ Also included: **Store Pulse** (live signals + area health), **Find Item** (with
 npm install
 npm run dev        # http://localhost:5173
 npm test           # model unit tests
-npm run build && npm run e2e   # drives the full workflow in Chromium, screenshots → e2e-shots/
+npm run build && npm run e2e        # demo store workflow in Chromium → e2e-shots/
+node scripts/e2e-real.mjs           # real-store setup, Bluetooth-scanner mapping, go-backs
 ```
-Reset the demo from the desktop side panel, or with Shift+Alt+R.
+Pushing to this branch deploys to GitHub Pages (`.github/workflows/deploy.yml`).

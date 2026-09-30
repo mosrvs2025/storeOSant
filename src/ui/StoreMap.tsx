@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AISLE_COUNT, CORRALS, DOORS, FIXTURES, FRONT_END, SLOT, SLOTS, STORE, aisleX, type Pt, type Rect } from '../model/layout';
+import { AISLE_COUNT, CORRALS, DELI_W, DOORS, FIXTURES, FRONT_END, MEAT_W, SLOT, SLOTS, STORE, aisleX, isFrozenAisle, type Pt, type Rect } from '../model/layout';
 
 export const MAP_H = 206;
 export const FULL: Rect = { x: -4, y: -4, w: STORE.w + 8, h: MAP_H + 6 };
@@ -69,16 +69,20 @@ const StaticLayer = memo(function StaticLayer() {
         </g>
       ))}
       <text x={27} y={5.4} className="m-lbl" textAnchor="middle">BAKERY</text>
-      <text x={105} y={5.4} className="m-lbl" textAnchor="middle">MEAT & SEAFOOD</text>
-      <text x={177} y={6.4} className="m-lbl" textAnchor="middle">DELI</text>
-      <text x={232} y={6.4} className="m-lbl m-lbl-dim" textAnchor="middle">BACKSTOCK</text>
-      <text x={255} y={66} className="m-lbl" textAnchor="middle" transform="rotate(90 255 66)">DAIRY</text>
+      <text x={60 + MEAT_W / 2} y={5.4} className="m-lbl" textAnchor="middle">MEAT & SEAFOOD</text>
+      <text x={60 + MEAT_W + DELI_W / 2} y={6.4} className="m-lbl" textAnchor="middle">DELI</text>
+      <text x={STORE.w - 28} y={6.4} className="m-lbl m-lbl-dim" textAnchor="middle">BACKSTOCK</text>
+      <text x={STORE.w - 5} y={66} className="m-lbl" textAnchor="middle" transform={`rotate(90 ${STORE.w - 5} 66)`}>DAIRY</text>
       <text x={24} y={118} className="m-lbl" textAnchor="middle">PRODUCE</text>
       <text x={26} y={137} className="m-lbl m-lbl-xs" textAnchor="middle">SEASONAL</text>
-      <text x={211} y={135.5} className="m-lbl m-lbl-xs" textAnchor="middle">SERVICE</text>
-      <text x={245} y={134} className="m-lbl m-lbl-xs" textAnchor="middle">FLORAL</text>
-      <text x={120} y={152} className="m-lbl m-lbl-dim" textAnchor="middle">FRONT END</text>
-      <text x={aisleX(11.5)} y={22} className="m-lbl m-lbl-xs m-lbl-ice" textAnchor="middle">FROZEN</text>
+      <text x={FRONT_END.x} y={135.5} className="m-lbl m-lbl-xs" textAnchor="middle">SERVICE</text>
+      <text x={STORE.w - 15} y={134} className="m-lbl m-lbl-xs" textAnchor="middle">FLORAL</text>
+      <text x={(58 + FRONT_END.x) / 2} y={152} className="m-lbl m-lbl-dim" textAnchor="middle">FRONT END</text>
+      {Array.from({ length: AISLE_COUNT }, (_, i) =>
+        isFrozenAisle(i + 1) && !isFrozenAisle(i) ? (
+          <text key={i} x={aisleX(i + 1)} y={22} className="m-lbl m-lbl-xs m-lbl-ice" textAnchor="middle">FROZEN</text>
+        ) : null,
+      )}
     </g>
   );
 });

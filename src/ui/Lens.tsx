@@ -1,5 +1,6 @@
+import { IS_REAL } from '../model/config';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AISLE_COUNT, AISLE_NAMES, SECTIONS, SLOT, aisleX } from '../model/layout';
+import { AISLE_COUNT, AISLE_NAMES, SECTIONS, SLOT, aisleX, isFrozenAisle } from '../model/layout';
 import { PRODUCT } from '../model/products';
 import { areaHealth, fmtAgo } from '../model/reality';
 import { distance } from '../model/routing';
@@ -203,11 +204,17 @@ export function Lens({ go }: { go: Nav }) {
                   📷 Use camera
                 </button>
               )}
-              <button className="btn primary grow" onClick={sweep} disabled={sweeping}>
-                {sweeping ? 'Reading shelves…' : `Sweep Aisle ${aisle}`}
-              </button>
+              {IS_REAL ? (
+                <button className="btn ghost grow" onClick={() => go('map')}>
+                  🗺️ Map this aisle by scanning
+                </button>
+              ) : (
+                <button className="btn primary grow" onClick={sweep} disabled={sweeping}>
+                  {sweeping ? 'Reading shelves…' : `Sweep Aisle ${aisle}`}
+                </button>
+              )}
             </div>
-            <small className="muted">Demo: shelf recognition is simulated from the fictional store’s ground truth.</small>
+            <small className="muted">{IS_REAL ? 'Camera shelf recognition isn’t built yet — the labels come from what you’ve scanned.' : 'Demo: shelf recognition is simulated from the fictional store’s ground truth.'}</small>
           </>
         )}
       </div>
@@ -218,7 +225,7 @@ export function Lens({ go }: { go: Nav }) {
 
 /** A stylised one-point-perspective aisle used when the camera is off. */
 function FakeAisle({ aisle }: { aisle: number }) {
-  const cold = aisle >= 11;
+  const cold = isFrozenAisle(aisle);
   const hue = cold ? 205 : (aisle * 37) % 360;
   const shelves = [0, 1, 2, 3, 4];
   return (

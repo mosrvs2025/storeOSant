@@ -42,13 +42,13 @@ export function parseLocation(input: string): ParsedLocation | null {
 
   if (endcap) {
     const n = num(/(?:endcap|end cap|end|cap)\s*(\d{1,2})/) ?? aisle ?? num(/(\d{1,2})/);
-    if (n && n >= 1 && n <= 12) return { slot: SLOT[`E${n}-${back ? 'B' : 'F'}`], confidence: 0.9 };
+    if (n && SLOT[`E${n}-F`]) return { slot: SLOT[`E${n}-${back ? 'B' : 'F'}`], confidence: 0.9 };
   }
   const reg = num(/(?:register|lane|checkout|reg)\s*(\d)/);
-  if (reg && reg >= 1 && reg <= 6) return { slot: SLOT[`RG-${reg}`], confidence: 0.9 };
+  if (reg && SLOT[`RG-${reg}`]) return { slot: SLOT[`RG-${reg}`], confidence: 0.9 };
 
   const a = aisle ?? (shortAisle ? +shortAisle[1] : undefined);
-  if (a && a >= 1 && a <= 12) {
+  if (a && SLOT[`A${a}-A-L`]) {
     const sec = section ?? (/\b(front|near the front)\b/.test(s) ? 'A' : back ? 'E' : /\bmiddle\b/.test(s) ? 'C' : 'C');
     const side = right ? 'R' : 'L';
     return { slot: SLOT[`A${a}-${sec}-${side}`], confidence: section && (left || right) ? 0.95 : 0.7 };

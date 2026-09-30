@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { CORRALS, FRONT_END, SLOT, type Pt } from './layout';
-import { DEMO_CART, PRODUCT, PRODUCTS } from './products';
+import { IS_REAL } from './config';
+import { DEMO_CART, PRODUCT, PRODUCTS, addProduct, lookupUpc, replaceCatalog, type Product } from './products';
 import { allKnowledge, seedObservations, type Knowledge, type Obs, type ObsKind } from './reality';
 import { planRoute, routeFeet } from './routing';
 
@@ -78,12 +79,27 @@ export interface State {
   intro: boolean;
 }
 
-const KEY = 'storeos.v1';
+export const STATE_KEY = IS_REAL ? 'storeos.real.v1' : 'storeos.v1';
+const KEY = STATE_KEY;
 const VERSION = 3;
 const MIN = 60e3;
 
 function fresh(): State {
   const now = Date.now();
+  if (IS_REAL)
+    return {
+      v: VERSION,
+      obs: PRODUCTS.map((p, i) => ({ id: `p${i}`, pid: p.id, slot: p.plan, kind: 'plan' as const, t: now, who: 'You' })),
+      cart: [],
+      run: null,
+      lastRun: null,
+      me: { ...FRONT_END },
+      flags: [],
+      orders: [],
+      cartsCollectedAt: {},
+      learns: [],
+      intro: true,
+    };
   const P = (name: string) => PRODUCTS.find((p) => p.name === name)!.id;
   return {
     v: VERSION,
@@ -421,6 +437,7 @@ export function notFoundAt(pid: string): string | null {
 // Operational signals
 
 export function cartsIn(corral: string, s: State = state, now = Date.now()) {
+  if (IS_REAL) return 0; // no lot sensor in a real store (yet)
   const rate = { A: 5.5, B: 4, C: 7 }[corral] ?? 6; // minutes per returned cart
   return Math.min(24, Math.floor((now - (s.cartsCollectedAt[corral] ?? now)) / MIN / rate));
 }
@@ -484,3 +501,41 @@ export function sweepAisle(n: number): SweepResult {
   if (learns.length) setState((s) => ({ ...s, learns: [...learns, ...s.learns] }));
   return res;
 }
+
+// ---------------------------------------------------------------------------
+// Learning a real store
+
+/** Adds a brand-new product that lives at `slot`. */
+export function learnNewProduct(p: { upc: string; name: string; brand?: string; size?: string; emoji?: string }, slot: string): Product {
+  const prod = addProduct({ upc: p.upc, name: p.name, brand: p.brand ?? '', size: p.size ?? '', emoji: p.emoji ?? '📦', price: 0, plan: slot });
+  const t = Date.now();
+  setState((s) => ({
+    ...s,
+    obs: [...s.obs, { id: `n${t.toString(36)}a`, pid: prod.id, slot, kind: 'plan', t, who: 'You' }, { id: `n${t.toString(36)}b`, pid: prod.id, slot, kind: 'confirm', t, who: 'You' }],
+  }));
+  return prod;
+}
+
+/** "I'm looking at this product on this shelf." Confirms, or teaches a new/extra spot. */
+export function sawAt(pid: string, slot: string): 'confirmed' | 'moved' {
+  const k = knowledge()[pid];
+  const same = k.home === slot || k.secondary === slot;
+  observe(pid, slot, same ? 'confirm' : 'correct');
+  return same ? 'confirmed' : 'moved';
+}
+
+export function exportBackup(): string {
+  return JSON.stringify({ app: 'storeos', v: 1, at: Date.now(), config: localStorage.getItem('storeos.config'), catalog: PRODUCTS, state });
+}
+
+export function importBackup(json: string) {
+  const b = JSON.parse(json);
+  if (b.app !== 'storeos') throw new Error('Not a StoreOS backup');
+  if (b.config) localStorage.setItem('storeos.config', b.config);
+  const real = b.config ? JSON.parse(b.config).mode === 'real' : false;
+  if (real) localStorage.setItem('storeos.catalog', JSON.stringify(b.catalog ?? []));
+  localStorage.setItem(real ? 'storeos.real.v1' : 'storeos.v1', JSON.stringify(b.state));
+  location.reload();
+}
+
+export { lookupUpc, replaceCatalog };

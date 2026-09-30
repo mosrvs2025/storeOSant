@@ -1,4 +1,4 @@
-import { FIXTURES, STORE, type Pt } from './layout';
+import { DOORS, FIXTURES, STORE, type Pt } from './layout';
 
 // Walkable grid at 2 ft resolution. The parking lot (y > 170) is modeled as open floor
 // reachable through the front doors so cart runs route correctly.
@@ -15,7 +15,7 @@ const walk = new Uint8Array(COLS * ROWS);
       const y = r * CELL + CELL / 2;
       let ok = true;
       // front wall with the doors as the only opening
-      if (y > LOT_Y - 2 && y < LOT_Y + 2 && !(x > 228 && x < 252)) ok = false;
+      if (y > LOT_Y - 2 && y < LOT_Y + 2 && !(x > DOORS.x + 2 && x < DOORS.x + DOORS.w - 2)) ok = false;
       for (const f of FIXTURES) {
         const R = f.rect;
         // 1 ft clearance around fixtures

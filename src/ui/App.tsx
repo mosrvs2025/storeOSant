@@ -10,8 +10,11 @@ import { Copilot } from './Copilot';
 import { Find, Orders } from './Find';
 import { Lens } from './Lens';
 import { Toasts } from './common';
+import { MapShelf } from './Learn';
+import { Settings, Setup } from './Setup';
+import { IS_REAL, NEEDS_SETUP } from '../model/config';
 
-export type Screen = 'home' | 'scan' | 'nav' | 'done' | 'reality' | 'pulse' | 'copilot' | 'find' | 'orders' | 'lens';
+export type Screen = 'home' | 'scan' | 'nav' | 'done' | 'reality' | 'pulse' | 'copilot' | 'find' | 'orders' | 'lens' | 'map' | 'settings';
 export type Nav = (s: Screen) => void;
 
 const SCREENS: Record<Screen, (p: { go: Nav }) => JSX.Element | null> = {
@@ -25,6 +28,8 @@ const SCREENS: Record<Screen, (p: { go: Nav }) => JSX.Element | null> = {
   find: Find,
   orders: Orders,
   lens: Lens,
+  map: MapShelf,
+  settings: Settings,
 };
 
 function initial(): Screen {
@@ -59,13 +64,21 @@ export function App() {
     return () => removeEventListener('keydown', onKey);
   }, [go]);
   const View = SCREENS[screen];
+  if (NEEDS_SETUP)
+    return (
+      <div className="device">
+        <div className="app">
+          <Setup />
+        </div>
+      </div>
+    );
   return (
     <div className="device">
       <div className="app" key={screen}>
         <View go={go} />
       </div>
       <Toasts />
-      <aside className="desk-note">
+      <aside className="desk-note" hidden={IS_REAL}>
         <h2>StoreOS</h2>
         <p>A live spatial operating system for a physical store. Best on a phone — or right here in the frame.</p>
         <ol>

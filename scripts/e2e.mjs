@@ -31,6 +31,9 @@ const expectText = async (t) => {
 await page.goto(URL);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
+await expectText('Try the demo store');
+await shot('setup');
+await page.getByRole('button', { name: /Try the demo store/ }).click();
 await expectText('What are you doing?');
 await page.waitForTimeout(700);
 await shot('home');
