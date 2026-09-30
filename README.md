@@ -8,12 +8,12 @@ observation, and beliefs about where things are decay over time and snap back wh
 Demo store: *Fernwood Market #214*, a fictional 260 × 170 ft grocery store with 90 products, two weeks of simulated crew history, pickup orders, price-tag flags, shelf outs and a parking lot.
 
 ## Use it in your own store (Android)
+
 **Open:** https://storeosant.vercel.app/ in **Chrome on Android**. Then use ⋮ → **Add to Home screen**, and it runs full-screen and works offline.
 
 1. **Set up your store**, either way:
-   - **📸 Snap my store:** walk along the registers photographing each hanging aisle sign. StoreOS reads them with Claude and drafts the layout: aisle count, names and freezer aisles. You check it and save.
+   - **📸 Snap my store:** walk along the registers photographing each hanging aisle sign. StoreOS reads them with Claude and drafts the layout: aisle count, names and freezer aisles. Review the draft before saving. You can add or update sign photos later from ⚙ Settings.
    - **⌨️ Type it in:** set the aisle count, optionally name them, and tap ❄ on freezer aisles. This works offline.
-   You can add more sign photos later from ⚙ Settings.
 2. **Walk an Aisle** (how anyone teaches it, with no need to know the layout): read the hanging sign and tap the aisle number.
    Start at the front and scan every **shelf tag** on your left down to the back, then turn around and scan the other side back to the front.
    The order of your scans places each item in a section (A = front … E = back). About 3 minutes an aisle.
@@ -33,16 +33,18 @@ Most $25–60 scanners (Tera, Eyoyo, NetumScan, Inateck) work this way. Get a 1D
 Routing only needs the order to be roughly right. It can't draw custom floor plans yet.
 
 ## Try the demo (≈2 minutes)
+
 1. **Go-Backs** → tap items in the cart (or **⚡ Scan whole cart**, the camera, or type/say a UPC) → **Start Route**.
 2. Follow turn-by-turn navigation. Cold and frozen items get routed first; the banner shows how many feet you save compared with walking in scan order.
-3. At **Oreo Pumpkin Spice**, tap **📍 Not here?** and say or type *“it's actually on the endcap facing aisle six”*, or tap the map. You can attach a photo.
+3. At **Oreo Pumpkin Spice**, tap **📍 Not here?** and say or type *"it's actually on the endcap facing aisle six"*, or tap the map. You can attach a photo.
 4. Watch the **Reality Layer update**. Open it, replay two weeks in the **time machine**, and open the product to see its evidence.
-5. **Ask StoreOS**: *“I’ve got ten minutes. What should I do?”* It plans a route from live work across carts, tags, verification and pickups.
+5. **Ask StoreOS**: *"I’ve got ten minutes. What should I do?"* It plans a route from live work across carts, tags, verification and pickups.
 6. **Lens**: an AR-style HUD looking down an aisle. **Sweep** the aisle and the camera works as a sensor, confirming dozens of items at once and catching ones that moved. The shelf recognition is simulated from the demo's ground truth.
 
 Also included: **Store Pulse** (live signals + area health), **Find Item** (with secondary locations and how recently each was seen), **Pick Order** (when an item isn't found, it adds a detour to the next-best location), **Stock** (starts in backstock, then goes to the outs), and **Walk Store / Truth Walk** (visits the spots where one look adds the most confidence per foot walked).
 
 ## Architecture
+
 - `src/model/layout.ts`: store geometry, fixtures and ~190 named locations (aisle sections, endcaps, departments).
 - `src/model/routing.ts`: walkable 2-ft grid, Dijkstra paths, and a TSP (nearest-neighbour + 2-opt + or-opt) with cold-chain urgency.
 - `src/model/reality.ts`: observations → time-decayed beliefs, confidence, secondary homes, volatility; seeded history.
@@ -52,14 +54,23 @@ Also included: **Store Pulse** (live signals + area health), **Find Item** (with
 - `src/ui/*`: React screens. Everything runs offline, with no backend.
 
 ## Develop
-```
-npm install
+
+Node.js 22+ and npm:
+
+```sh
+npm ci
 npm run dev        # http://localhost:5173
-npm test           # model unit tests
-npm run build && npm run e2e        # demo store workflow in Chromium → e2e-shots/
-node scripts/e2e-real.mjs           # real-store setup, Bluetooth-scanner mapping, go-backs
+npm test           # unit tests
+npm run build      # production build to dist/
 ```
-Hosted on Vercel. `api/read-signs.ts` is a Vercel Function that reads sign photos with Claude.
-It needs **`ANTHROPIC_API_KEY`**: set it in Vercel under Project → Settings → Environment Variables.
-Without the key, "Snap my store" shows an error and offers typing instead. GitHub Actions runs tests and the build on every push.
-`node scripts/e2e-snap.mjs` tests the photo setup flow with the API mocked.
+
+Additional browser workflows (Chromium / Playwright dependencies may need to be installed in your environment):
+
+```sh
+npm run e2e                    # end-to-end demo-store workflow (scripts/e2e.mjs)
+node scripts/e2e-snap.mjs      # photo setup flow with the Claude API mocked
+node scripts/e2e-real.mjs      # real-store setup, Bluetooth-scanner mapping, and go-backs
+```
+
+Hosted on Vercel. Import this repository with the Vite preset; `vercel.json` configures the app. `api/read-signs.ts` is a Vercel Function that reads aisle-sign photos with Claude and requires the server-side `ANTHROPIC_API_KEY` environment variable. Without the key, photo setup explains the error and manual layout entry remains available. GitHub Actions runs unit tests, checks the API TypeScript, and builds on pushes and pull requests; it does not deploy the site.
+
