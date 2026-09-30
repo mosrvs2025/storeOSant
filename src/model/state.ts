@@ -506,13 +506,17 @@ export function sweepAisle(n: number): SweepResult {
 // Learning a real store
 
 /** Adds a brand-new product that lives at `slot`. */
-export function learnNewProduct(p: { upc: string; name: string; brand?: string; size?: string; emoji?: string }, slot: string): Product {
-  const prod = addProduct({ upc: p.upc, name: p.name, brand: p.brand ?? '', size: p.size ?? '', emoji: p.emoji ?? '📦', price: 0, plan: slot });
-  const t = Date.now();
-  setState((s) => ({
-    ...s,
-    obs: [...s.obs, { id: `n${t.toString(36)}a`, pid: prod.id, slot, kind: 'plan', t, who: 'You' }, { id: `n${t.toString(36)}b`, pid: prod.id, slot, kind: 'confirm', t, who: 'You' }],
-  }));
+export function learnNewProduct(
+  p: { upc: string; name: string; brand?: string; size?: string; emoji?: string; cats?: string[] },
+  slot: string,
+  opts: { guess?: boolean; t?: number } = {},
+): Product {
+  const prod = addProduct({ upc: p.upc, name: p.name, brand: p.brand ?? '', size: p.size ?? '', emoji: p.emoji ?? '📦', price: 0, plan: slot, cats: p.cats });
+  const t = opts.t ?? Date.now();
+  const obs: Obs[] = [{ id: `n${t.toString(36)}${prod.id}a`, pid: prod.id, slot, kind: 'plan', t, who: opts.guess ? 'StoreOS guess' : 'You' }];
+  // A guess is only a prior; the first put-away confirms (or corrects) it.
+  if (!opts.guess) obs.push({ id: `n${t.toString(36)}${prod.id}b`, pid: prod.id, slot, kind: 'confirm', t, who: 'You' });
+  setState((s) => ({ ...s, obs: [...s.obs, ...obs] }));
   return prod;
 }
 

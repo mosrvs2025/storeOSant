@@ -19,8 +19,9 @@ const DEMO_VERBS = [
 ] as const;
 const REAL_VERBS = [
   { id: 'scan', label: 'Go-Backs', icon: '↩️', hint: 'Scan a cart, get a route' },
-  { id: 'map', label: 'Map a Shelf', icon: '🗺️', hint: 'Teach it your store' },
+  { id: 'aisle', label: 'Walk an Aisle', icon: '🏷️', hint: 'Scan shelf tags, learn it' },
   { id: 'find', label: 'Find Item', icon: '🔎', hint: 'Where is it, really?' },
+  { id: 'map', label: 'Map a Spot', icon: '🗺️', hint: 'Endcaps, coolers, displays' },
   { id: 'walk', label: 'Walk Store', icon: '👣', hint: 'Re-check shaky spots' },
 ] as const;
 const VERBS = IS_REAL ? REAL_VERBS : DEMO_VERBS;
@@ -138,15 +139,15 @@ export function Home({ go }: { go: Nav }) {
         </button>
 
         {IS_REAL && PRODUCTS.length < 25 && (
-          <button className="teach-card" onClick={() => go('map')}>
+          <button className="teach-card" onClick={() => go('aisle')}>
             <b>{PRODUCTS.length === 0 ? '👋 Teach StoreOS your store' : `🗺️ ${PRODUCTS.length} products mapped — keep going`}</b>
-            <small>Stand at a shelf, tap it on the map, scan everything on it. Ten minutes of scanning makes go-backs useful. Scanning go-backs teaches it too.</small>
+            <small>Tap <b>Walk an Aisle</b>: say which aisle you’re in, then scan the shelf tags down one side and back up the other. About 3 minutes an aisle, and no need to know the layout. Unmapped items still get a smart guess.</small>
           </button>
         )}
         <h2 className="q">What are you doing?</h2>
         <div className={`verbs ${VERBS.length % 2 === 0 ? 'odd' : ''}`}>
           {VERBS.map((v) => (
-            <button key={v.id} className={`verb ${v.id === 'scan' ? 'primary' : ''} ${v.id === (IS_REAL && PRODUCTS.length === 0 ? 'map' : 'scan') && s.intro ? 'beckon' : ''}`} onClick={() => verb(v.id)}>
+            <button key={v.id} className={`verb ${v.id === 'scan' ? 'primary' : ''} ${v.id === (IS_REAL && PRODUCTS.length === 0 ? 'aisle' : 'scan') && s.intro ? 'beckon' : ''}`} onClick={() => verb(v.id)}>
               <span className="vi">{v.icon}</span>
               <b>{v.label}</b>
               <small>{v.hint}</small>

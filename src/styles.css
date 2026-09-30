@@ -2683,3 +2683,171 @@ p {
   text-align: center;
   margin-top: 24px;
 }
+
+/* ---------- walk an aisle / guesses ---------- */
+.num-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ap.big {
+  height: 54px;
+  font-size: 20px;
+  width: 100%;
+}
+.ap.other {
+  text-align: center;
+  color: var(--text);
+  outline: none;
+}
+.sign-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.sign-field small {
+  color: var(--muted);
+  font-weight: 500;
+}
+.sign-field input {
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0 12px;
+  font-size: 16px;
+  outline: none;
+}
+.chip-btn.ice {
+  border-color: var(--ice);
+  color: var(--ice);
+}
+.center {
+  text-align: center;
+}
+.walk-diagram {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;
+  height: 96px;
+  margin: 4px 0 12px;
+}
+.wd-side {
+  width: 44px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--muted);
+}
+.wd-side.on {
+  background: color-mix(in srgb, var(--mint) 18%, var(--surface));
+  border-color: var(--mint);
+  color: var(--mint);
+  animation: pulse 1.6s infinite;
+}
+.wd-side.done {
+  color: var(--mint);
+}
+.wd-aisle {
+  width: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 4px 0;
+  border-left: 1px dashed var(--line);
+  border-right: 1px dashed var(--line);
+}
+.walk-count {
+  margin-right: auto;
+  order: -1;
+  font-size: 13px;
+  color: var(--muted);
+  align-self: center;
+}
+.walk-count b {
+  color: var(--text);
+  font-size: 20px;
+}
+.walk-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 90px;
+}
+.walk-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid #18212c;
+  font-size: 14px;
+  animation: newrow 0.7s ease;
+}
+.wl-sec {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 900;
+  background: var(--surface2);
+  color: var(--muted);
+  flex: none;
+}
+.wl-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sticky-cta {
+  position: sticky;
+  bottom: calc(12px + var(--safe-b));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.done-stats.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+.guess {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.guess.on {
+  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 12%, var(--surface));
+}
+.guess-ico {
+  color: var(--violet);
+  font-size: 20px;
+}
+.guess b {
+  display: block;
+  font-size: 15px;
+}
+.guess small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.mt {
+  margin-top: 12px;
+}

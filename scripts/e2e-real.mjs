@@ -15,7 +15,8 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? 
 const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
-page.on('dialog', (d) => d.accept());
+let promptAnswer = '';
+page.on('dialog', (d) => d.accept(promptAnswer || undefined));
 let n = 0;
 const shot = (name) => page.screenshot({ path: `${OUT}/${String(++n).padStart(2, '0')}-${name}.png` });
 const see = (t) => page.getByText(t, { exact: false }).first().waitFor({ timeout: 6000 });
@@ -45,8 +46,45 @@ try {
   await shot('home-empty');
   step('store created');
 
+  // Walk aisle 6 with the scanner: 4 tags down the left, 2 back up the right
+  await page.locator('.verb', { hasText: 'Walk an Aisle' }).click();
+  await page.locator('.num-grid .ap', { hasText: /^6$/ }).click();
+  await page.getByPlaceholder(/Chips · Soda/).fill('Chips · Salsa');
+  await page.getByRole('button', { name: /Start aisle 6/ }).click();
+  await see('shelf tag on your left');
+  for (const c of ['011111000017', '011111000024', '011111000031', '011111000048']) await gun(c);
+  await shot('walk-left');
+  await page.getByRole('button', { name: /other side/ }).click();
+  await see('Turn around');
+  for (const c of ['011111000055', '011111000062']) await gun(c);
+  await page.getByRole('button', { name: /Finish aisle/ }).click();
+  await see('Aisle 6 learned');
+  await shot('walk-done');
+  step('walked aisle 6: ' + (await page.locator('.done-stats').innerText()).replace(/\n/g, ' '));
+  // Aisle 17 doesn't exist yet in a 16-aisle store: walking it grows the floor plan
+  await page.getByRole('button', { name: 'Done for now' }).click();
+  await page.locator('.verb', { hasText: 'Walk an Aisle' }).click();
+  await page.locator('.num-grid .other').fill('17');
+  await page.getByRole('button', { name: /Start aisle 17/ }).click();
+  await see('Aisle 17 · left side');
+  await gun('011111000079');
+  await page.getByRole('button', { name: /other side/ }).click();
+  await page.getByRole('button', { name: /Finish aisle/ }).click();
+  await see('Aisle 17 learned');
+  step('aisle 17 added by walking it');
+  const cfg = await page.evaluate(() => JSON.parse(localStorage.getItem('storeos.config')));
+  if (cfg.aisles !== 17 || cfg.aisleNames[6] !== 'Chips · Salsa') throw new Error('config lost: ' + JSON.stringify(cfg));
+  await page.getByRole('button', { name: 'Done for now' }).click();
+  // Name one of the aisle-6 items, as a worker would from Settings
+  await page.goto(URL + '#settings');
+  await page.getByPlaceholder('Search name or UPC…').fill('000017');
+  promptAnswer = 'Doritos Nacho Cheese';
+  await page.getByRole('button', { name: 'Rename' }).first().click();
+  promptAnswer = '';
+  await page.goto(URL + '#home');
+
   // Map aisle 6 section A left with the scanner gun
-  await page.getByRole('button', { name: /Map a Shelf/ }).click();
+  await page.getByRole('button', { name: /Map a Spot/ }).click();
   await page.locator('.ap', { hasText: /^6$/ }).click();
   await page.getByRole('button', { name: /A◀/ }).click();
   await page.getByRole('button', { name: /Start scanning/ }).click();
@@ -64,7 +102,7 @@ try {
   await page.getByRole('button', { name: 'Done' }).click();
 
   // Map a freezer spot
-  await page.getByRole('button', { name: /Map a Shelf/ }).click();
+  await page.getByRole('button', { name: /Map a Spot/ }).click();
   await page.locator('.ap', { hasText: /^15$/ }).click();
   await page.getByRole('button', { name: /Start scanning/ }).click();
   await gun('077567254238');
@@ -76,18 +114,25 @@ try {
   await gun('077567254238');
   await gun('049000028911');
   await see('New item — teach StoreOS');
+  await page.getByPlaceholder(/What is it/).fill('Doritos Cool Ranch');
+  await see('Probably Aisle 6');
+  await shot('guess');
+  step('guess: ' + (await page.locator('.guess').innerText()).replace(/\n/g, ' · '));
+  await page.getByRole('button', { name: 'Use the guess' }).click();
+  await gun('049000028928');
+  await see('New item — teach StoreOS');
   await page.getByPlaceholder(/What is it/).fill('Sprite 2L');
   await page.locator('.sheet .ap', { hasText: /^3$/ }).click();
   await shot('learn-new');
-  await page.getByRole('button', { name: /Save — it lives at/ }).click();
-  await see('3 items');
+  await page.getByRole('button', { name: /Save — Aisle 3/ }).click();
+  await see('4 items');
   await shot('gobacks');
   await page.getByRole('button', { name: /Start Route/ }).click();
   await see('NEXT');
   const first = await page.locator('.nb-main h1').innerText();
   step('route first stop: ' + first + ' (freezer should be first)');
   await shot('nav');
-  for (let i = 0; i < 6 && (await page.locator('.nav').count()); i++) {
+  for (let i = 0; i < 8 && (await page.locator('.nav').count()); i++) {
     await page.locator('.sc-actions .btn.primary').click();
     await page.waitForTimeout(250);
   }
@@ -96,9 +141,9 @@ try {
 
   await page.reload();
   await page.goto(URL + '#settings');
-  await see('Catalog · 5 products');
+  await see('Catalog · 13 products');
   await shot('settings');
-  step('persisted after reload: 5 products');
+  step('persisted after reload: 13 products');
   await page.goto(URL + '#home');
   await page.waitForTimeout(600);
   await shot('home-after');

@@ -102,6 +102,7 @@ export interface OnlineInfo {
   brand: string;
   size: string;
   emoji: string;
+  cats: string[];
 }
 
 const EMOJI: [RegExp, string][] = [
@@ -148,7 +149,7 @@ export async function lookupOnline(upc: string): Promise<OnlineInfo | null> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 4000);
   try {
-    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,quantity,categories`, { signal: ctl.signal });
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,quantity,categories,categories_tags`, { signal: ctl.signal });
     if (!r.ok) return null;
     const j = await r.json();
     const p = j?.product;
@@ -158,6 +159,7 @@ export async function lookupOnline(upc: string): Promise<OnlineInfo | null> {
       brand: String(p.brands ?? '').split(',')[0].trim(),
       size: String(p.quantity ?? '').trim(),
       emoji: guessEmoji(`${p.categories ?? ''} ${p.product_name}`),
+      cats: Array.isArray(p.categories_tags) ? p.categories_tags.map((c: string) => c.replace(/^[a-z]{2}:/, '')).slice(0, 12) : [],
     };
   } catch {
     return null;

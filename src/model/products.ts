@@ -16,6 +16,7 @@ export interface Product {
   truth: string;
   also?: string; // a real secondary location
   drifty?: boolean; // moves around a lot (seasonal / promo)
+  cats?: string[]; // Open Food Facts category tags, used to predict where new items go
 }
 
 function upcCheck(d11: string): string {
@@ -183,7 +184,7 @@ export function addProduct(p: Omit<Product, 'id' | 'truth'> & { truth?: string }
   return prod;
 }
 
-export function updateProduct(id: string, patch: Partial<Pick<Product, 'name' | 'brand' | 'size' | 'emoji'>>) {
+export function updateProduct(id: string, patch: Partial<Pick<Product, 'name' | 'brand' | 'size' | 'emoji' | 'cats'>>) {
   const p = PRODUCT[id];
   if (!p) return;
   Object.assign(p, patch);

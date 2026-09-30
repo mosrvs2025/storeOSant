@@ -56,5 +56,7 @@ export function saveConfig(c: StoreConfig, reload = true) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
   // remember the real store's settings so switching to the demo and back loses nothing
   if (c.mode === 'real') localStorage.setItem(CONFIG_KEY + '.real', JSON.stringify(c));
+  // keep the in-memory copy current so later saves in this session don't undo this one
+  if (c.mode === CONFIG.mode) Object.assign(CONFIG, c);
   if (reload) location.reload();
 }

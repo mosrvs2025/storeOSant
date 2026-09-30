@@ -29,7 +29,7 @@ function StoreForm({ initial, onSave, cta }: { initial: StoreConfig; onSave: (c:
         </div>
       </div>
       <p className="muted small">
-        StoreOS lays out the aisles between produce/bakery (left), meat &amp; deli (back wall), dairy (right) and the registers (front). It doesn’t need to be exact — routing just needs the order of things.
+        StoreOS lays out the aisles between produce/bakery (left), meat &amp; deli (back wall), dairy (right) and the registers (front). Not sure? Leave it — walking a higher-numbered aisle adds it automatically.
       </p>
       <h3 className="h3">Aisle names &amp; freezers</h3>
       <div className="aisle-names">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AISLE_COUNT, AISLE_NAMES, SECTIONS, SLOT, SLOTS, nearestSlot, type Slot } from '../model/layout';
 import { PRODUCT, PRODUCTS, lookupUpc, normUpc, updateProduct, type Product } from '../model/products';
 import { parseLocation } from '../model/parse';
+import { predictSlot } from '../model/predict';
 import { learnNewProduct, sawAt, useKnowledge, useStore } from '../model/state';
 import { StoreMap, boundsOf, FULL } from './StoreMap';
 import { Sheet, TopBar, VoiceInput, toast } from './common';
@@ -79,12 +80,15 @@ export function SlotPicker({ value, onChange, height = 220 }: { value: Slot | nu
 
 /** An unknown barcode: name it and say where it lives. */
 export function LearnSheet({ upc, onClose, onLearned, initialSlot }: { upc: string; onClose: () => void; onLearned: (p: Product) => void; initialSlot?: string }) {
+  const k = useKnowledge();
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [size, setSize] = useState('');
   const [emoji, setEmoji] = useState('📦');
+  const [cats, setCats] = useState<string[]>([]);
   const [looking, setLooking] = useState(true);
   const [slot, setSlot] = useState<Slot | null>(initialSlot ? SLOT[initialSlot] : null);
+  const [touched, setTouched] = useState(!!initialSlot);
   useEffect(() => {
     let live = true;
     lookupOnline(upc).then((info) => {
@@ -95,12 +99,25 @@ export function LearnSheet({ upc, onClose, onLearned, initialSlot }: { upc: stri
         setBrand(info.brand);
         setSize(info.size);
         setEmoji(info.emoji);
+        setCats(info.cats);
       }
     });
     return () => {
       live = false;
     };
   }, [upc]);
+  const guess = useMemo(() => (name.trim() ? predictSlot({ name, brand, cats }, k) : null), [name, brand, cats, k]);
+  // Pre-select the guess until the worker picks something themselves.
+  useEffect(() => {
+    if (!touched && guess) setSlot(SLOT[guess.slot]);
+  }, [guess, touched]);
+  const usingGuess = !!guess && !touched && slot?.id === guess.slot;
+  const save = (asGuess: boolean) => {
+    const p = learnNewProduct({ upc, name: name.trim(), brand, size, emoji, cats }, slot!.id, { guess: asGuess });
+    sfx.learn();
+    toast(asGuess ? `Guessing ${slot!.label} for ${p.name} — your put-away will confirm it` : `Learned ${p.name} → ${slot!.label}`, 'violet');
+    onLearned(p);
+  };
   return (
     <Sheet title="New item — teach StoreOS" onClose={onClose}>
       <p className="muted small">UPC {normUpc(upc)} isn’t in your store yet. {looking ? 'Looking it up…' : ''}</p>
@@ -113,20 +130,35 @@ export function LearnSheet({ upc, onClose, onLearned, initialSlot }: { upc: stri
           {brand} {size && `· ${size}`}
         </p>
       )}
-      <h3 className="h3">Where does it live?</h3>
-      <SlotPicker value={slot} onChange={setSlot} />
-      <button
-        className="btn primary wide"
-        disabled={!slot || !name.trim()}
-        onClick={() => {
-          const p = learnNewProduct({ upc, name: name.trim(), brand, size, emoji }, slot!.id);
-          sfx.learn();
-          toast(`Learned ${p.name} → ${slot!.label}`, 'violet');
-          onLearned(p);
+      {guess && (
+        <div className={`guess ${usingGuess ? 'on' : ''}`}>
+          <span className="guess-ico">✦</span>
+          <div>
+            <b>
+              Probably {SLOT[guess.slot].label} · {Math.round(guess.confidence * 100)}%
+            </b>
+            <small>{guess.because}</small>
+          </div>
+        </div>
+      )}
+      <h3 className="h3">{guess ? 'Or pick the exact spot' : 'Where does it live?'}</h3>
+      <SlotPicker
+        value={slot}
+        onChange={(s) => {
+          setTouched(true);
+          setSlot(s);
         }}
-      >
-        {slot ? `Save — it lives at ${slot.label}` : 'Pick where it lives'}
-      </button>
+      />
+      <div className="row2 mt">
+        {usingGuess && (
+          <button className="btn ghost grow" disabled={!name.trim()} onClick={() => save(true)}>
+            Use the guess
+          </button>
+        )}
+        <button className="btn primary grow" disabled={!slot || !name.trim()} onClick={() => save(false)}>
+          {slot ? (usingGuess ? `I’m sure — ${slot.label}` : `Save — ${slot.label}`) : 'Pick where it lives'}
+        </button>
+      </div>
     </Sheet>
   );
 }
@@ -168,7 +200,7 @@ export function MapShelf({ go }: { go: Nav }) {
     setLog((l) => [{ key: n.current++, pid: p.id, result: 'new' }, ...l]);
     lookupOnline(code).then((info) => {
       if (!info) return;
-      updateProduct(p.id, { name: info.name, brand: info.brand, size: info.size, emoji: info.emoji });
+      updateProduct(p.id, { name: info.name, brand: info.brand, size: info.size, emoji: info.emoji, cats: info.cats });
       bump((x) => x + 1); // re-render with the new name
     });
   };

@@ -11,10 +11,11 @@ import { Find, Orders } from './Find';
 import { Lens } from './Lens';
 import { Toasts } from './common';
 import { MapShelf } from './Learn';
+import { WalkAisle } from './WalkAisle';
 import { Settings, Setup } from './Setup';
 import { IS_REAL, NEEDS_SETUP } from '../model/config';
 
-export type Screen = 'home' | 'scan' | 'nav' | 'done' | 'reality' | 'pulse' | 'copilot' | 'find' | 'orders' | 'lens' | 'map' | 'settings';
+export type Screen = 'home' | 'scan' | 'nav' | 'done' | 'reality' | 'pulse' | 'copilot' | 'find' | 'orders' | 'lens' | 'map' | 'settings' | 'aisle';
 export type Nav = (s: Screen) => void;
 
 const SCREENS: Record<Screen, (p: { go: Nav }) => JSX.Element | null> = {
@@ -30,6 +31,7 @@ const SCREENS: Record<Screen, (p: { go: Nav }) => JSX.Element | null> = {
   lens: Lens,
   map: MapShelf,
   settings: Settings,
+  aisle: WalkAisle,
 };
 
 function initial(): Screen {

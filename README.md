@@ -11,8 +11,13 @@ Demo store: *Fernwood Market #214*, a fictional 260 × 170 ft grocery store with
 **Open:** https://mosrvs2025.github.io/storeOSant/ in **Chrome on Android**. Then use ⋮ → **Add to Home screen**, and it runs full-screen and works offline.
 
 1. **Set up my store**: name it, set how many numbered aisles you have, and optionally name them. Tap ❄ on freezer aisles.
-2. **Map a Shelf**: stand at a section, tap it (aisle → section A–E → side ◀/▶), then scan everything there. **Next section →** moves you along the aisle.
-   Unknown barcodes are added right away; names are looked up on Open Food Facts when you have signal, or you can rename them with ✎.
+2. **Walk an Aisle** (how anyone teaches it, with no need to know the layout): read the hanging sign and tap the aisle number.
+   Start at the front and scan every **shelf tag** on your left down to the back, then turn around and scan the other side back to the front.
+   The order of your scans places each item in a section (A = front … E = back). About 3 minutes an aisle.
+   Walking an aisle number the store doesn't have yet adds it. Names come from Open Food Facts when you have signal; rename leftovers in ⚙.
+   **Map a Spot** handles one-off places (endcaps, coolers, displays): tap the spot, then scan what's there.
+   **Smart guesses:** a new item nobody has mapped gets a predicted spot, e.g. "Probably Aisle 6 · 41% — similar to Doritos Nacho Cheese".
+   The guess uses name, brand and category similarity to what's already mapped. **Use the guess** routes it there, and the put-away confirms or corrects it.
 3. **Go-Backs**: scan the cart. Known items are routed automatically. For a new item, you name it and tap where it lives, once.
    At each stop, **✓ Put away** confirms the location and **📍 Not here?** corrects it. Every scan makes the map more accurate.
 4. **Settings ⚙ → Export** now and then. Your map lives only on the phone.
